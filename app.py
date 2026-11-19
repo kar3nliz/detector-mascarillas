@@ -19,9 +19,9 @@ try:
     input_details = interpreter.get_input_details()
     output_details = interpreter.get_output_details()
     
-    # Detectar dimensiones exactas automáticamente
-    shape = input_details['shape']
-    alto, ancho = int(shape), int(shape)
+    # Detectar dimensiones exactas automáticamente usando el índice [0]
+    shape = input_details[0]['shape']
+    alto, ancho = int(shape[1]), int(shape[2])
     st.success(f"✅ Modelo cargado correctamente (Entrada esperada: {ancho}x{alto} px)")
 except Exception as e:
     st.error(f"❌ Error al cargar el modelo: {e}")
@@ -39,9 +39,9 @@ if archivo is not None:
     datos_entrada = np.expand_dims(np.array(img_redimensionada, dtype=np.float32) / 255.0, axis=0)
     
     # Ejecutar inferencia
-    interpreter.set_tensor(input_details['index'], datos_entrada)
+    interpreter.set_tensor(input_details[0]['index'], datos_entrada)
     interpreter.invoke()
-    salida = interpreter.get_tensor(output_details['index'])
+    salida = interpreter.get_tensor(output_details[0]['index'])[0]
     
     st.subheader("Resultados de la predicción:")
     for i, prob in enumerate(salida):
