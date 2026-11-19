@@ -3,9 +3,6 @@
 <head>
   <meta charset="UTF-8">
   <title>Detector de Mascarillas - TFLite</title>
-  <!-- Cargar el paquete completo de TensorFlow.js y el enlace directo de TFLite -->
-  <script src="https://jsdelivr.net"></script>
-  <script src="https://jsdelivr.net"></script>
   <style>
     body { font-family: sans-serif; max-width: 600px; margin: 40px auto; text-align: center; background-color: #f9fafb; padding: 20px; }
     .caja { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
@@ -25,61 +22,63 @@
     <div id="resultado"></div>
   </div>
 
-  <script>
-    window.addEventListener('load', async () => {
-      const estado = document.getElementById('estado');
-      const inputImagen = document.getElementById('subirImagen');
-      const vistaPrevia = document.getElementById('vistaPrevia');
-      const resultado = document.getElementById('resultado');
-      let modeloTFLite;
+  <script type="module">
+    import * as tf from 'https://esm.sh';
+    import * as tflite from 'https://esm.sh';
 
+    const estado = document.getElementById('estado');
+    const inputImagen = document.getElementById('subirImagen');
+    const vistaPrevia = document.getElementById('vistaPrevia');
+    const resultado = document.getElementById('resultado');
+    let modeloTFLite;
+
+    async function iniciar() {
       try {
-        // Configurar ruta WASM oficial y cargar el modelo
-        tflite.setWasmPath('https://jsdelivr.net/dist/');
+        tflite.setWasmPath('https://jsdelivr.net');
         modeloTFLite = await tflite.loadTFLiteModel('modelo_mascarillas.tflite');
         
         estado.innerText = "✅ ¡Modelo cargado! Sube una foto para probarlo:";
         inputImagen.disabled = false;
       } catch (error) {
         estado.innerText = "❌ Error al cargar: " + error.message;
-        return;
       }
+    }
 
-      inputImagen.addEventListener('change', (evento) => {
-        const archivo = evento.target.files[0];
-        if (!archivo) return;
+    inputImagen.addEventListener('change', (evento) => {
+      const archivo = evento.target.files[0];
+      if (!archivo) return;
 
-        vistaPrevia.src = URL.createObjectURL(archivo);
-        vistaPrevia.style.display = 'block';
-        vistaPrevia.onload = () => predecir();
-      });
-
-      function predecir() {
-        resultado.innerText = "Analizando imagen...";
-        try {
-          // Redimensionar a 224x224 y normalizar (0 a 1)
-          let tensor = tf.browser.fromPixels(vistaPrevia)
-            .resizeBilinear([224, 224]) 
-            .toFloat()
-            .div(255.0)
-            .expandDims(0);
-
-          const prediccion = modeloTFLite.predict(tensor);
-          const valores = Array.from(prediccion.dataSync());
-
-          if (valores.length === 2) {
-            const clase0 = (valores[0] * 100).toFixed(1);
-            const clase1 = (valores[1] * 100).toFixed(1);
-            resultado.innerHTML = `Clase 0: ${clase0}% <br> Clase 1: ${clase1}%`;
-          } else {
-            resultado.innerText = "Predicción: " + valores.map(n => (n * 100).toFixed(1) + "%").join(" | ");
-          }
-          tensor.dispose();
-        } catch (err) {
-          resultado.innerText = "⚠️ Error al analizar: " + err.message;
-        }
-      }
+      vistaPrevia.src = URL.createObjectURL(archivo);
+      vistaPrevia.style.display = 'block';
+      vistaPrevia.onload = () => predecir();
     });
+
+    function predecir() {
+      resultado.innerText = "Analizando imagen...";
+      try {
+        let tensor = tf.browser.fromPixels(vistaPrevia)
+          .resizeBilinear([224, 224]) 
+          .toFloat()
+          .div(255.0)
+          .expandDims(0);
+
+        const prediccion = modeloTFLite.predict(tensor);
+        const valores = Array.from(prediccion.dataSync());
+
+        if (valores.length === 2) {
+          const clase0 = (valores[0] * 100).toFixed(1);
+          const clase1 = (valores[1] * 100).toFixed(1);
+          resultado.innerHTML = `Clase 0: ${clase0}% <br> Clase 1: ${clase1}%`;
+        } else {
+          resultado.innerText = "Predicción: " + valores.map(n => (n * 100).toFixed(1) + "%").join(" | ");
+        }
+        tensor.dispose();
+      } catch (err) {
+        resultado.innerText = "⚠️ Error al analizar: " + err.message;
+      }
+    }
+
+    iniciar();
   </script>
 </body>
 </html>
