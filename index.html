@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Detector de Mascarillas - TFLite</title>
+  <script src="https://jsdelivr.net"></script>
+  <script src="https://jsdelivr.net"></script>
+  <script src="https://jsdelivr.net"></script>
+  <style>
+    body { font-family: sans-serif; max-width: 600px; margin: 40px auto; text-align: center; background-color: #f9fafb; padding: 20px; }
+    .caja { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+    img { max-width: 300px; margin: 20px auto; display: none; border-radius: 8px; border: 2px solid #e2e8f0; }
+    #resultado { font-size: 1.3em; font-weight: bold; margin-top: 20px; color: #2b6cb0; }
+  </style>
+</head>
+<body>
+
+  <div class="caja">
+    <h2>Detector de Mascarillas (TFLite)</h2>
+    <p id="estado">Cargando modelo...</p>
+    
+    <input type="file" id="subirImagen" accept="image/*" disabled>
+    <br>
+    <img id="vistaPrevia" alt="Vista previa">
+    <div id="resultado"></div>
+  </div>
+
+  <script>
+    window.addEventListener('load', async () => {
+      const estado = document.getElementById('estado');
+      const inputImagen = document.getElementById('subirImagen');
+      const vistaPrevia = document.getElementById('vistaPrevia');
+      const resultado = document.getElementById('resultado');
+      let modeloTFLite;
+
+      try {
+        tflite.setWasmPath('https://jsdelivr.net');
+        modeloTFLite = await tflite.loadTFLiteModel('modelo_mascarillas.tflite');
+        estado.innerText = "✅ ¡Modelo cargado! Sube una foto para probarlo:";
+        inputImagen.disabled = false;
+      } catch (error) {
+        estado.innerText = "❌ Error al cargar: " + error.message;
+        return;
+      }
+
+      inputImagen.addEventListener('change', (evento) => {
+        const archivo = evento.target.files[0];
+        if (!archivo) return;
+
+        vistaPrevia.src = URL.createObjectURL(archivo);
+        vistaPrevia.style.display = 'block';
+        vistaPrevia.onload = () => predecir();
+      });
+
+      function predecir() {
+        resultado.innerText = "Analizando imagen...";
+        try {
+          let tensor = tf.browser.fromPixels(vistaPrevia)
+            .resizeBilinear([224, 224]) 
+            .toFloat()
+            .div(255.0)
+            .expandDims(0);
+
+          const prediccion = modeloTFLite.predict(tensor);
+          const valores = Array.from(prediccion.dataSync());
+
+          if (valores.length === 2) {
+            const clase0 = (valores[0] * 100).toFixed(1);
+            const clase1 = (valores[1] * 100).toFixed(1);
+            resultado.innerHTML = `Clase 0: ${clase0}% <br> Clase 1: ${clase1}%`;
+          } else {
+            resultado.innerText = "Predicción: " + valores.map(n => (n * 100).toFixed(1) + "%").join(" | ");
+          }
+          tensor.dispose();
+        } catch (err) {
+          resultado.innerText = "⚠️ Error al analizar: " + err.message;
+        }
+      }
+    });
+  </script>
+</body>
+</html>
