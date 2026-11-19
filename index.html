@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <title>Detector de Mascarillas - TFLite</title>
-  <script src="https://jsdelivr.net"></script>
+  <!-- Cargar el paquete completo de TensorFlow.js y el enlace directo de TFLite -->
   <script src="https://jsdelivr.net"></script>
   <script src="https://jsdelivr.net"></script>
   <style>
@@ -17,7 +17,7 @@
 
   <div class="caja">
     <h2>Detector de Mascarillas (TFLite)</h2>
-    <p id="estado">Cargando modelo...</p>
+    <p id="estado">Cargando librerías y modelo...</p>
     
     <input type="file" id="subirImagen" accept="image/*" disabled>
     <br>
@@ -34,8 +34,10 @@
       let modeloTFLite;
 
       try {
-        tflite.setWasmPath('https://jsdelivr.net');
+        // Configurar ruta WASM oficial y cargar el modelo
+        tflite.setWasmPath('https://jsdelivr.net/dist/');
         modeloTFLite = await tflite.loadTFLiteModel('modelo_mascarillas.tflite');
+        
         estado.innerText = "✅ ¡Modelo cargado! Sube una foto para probarlo:";
         inputImagen.disabled = false;
       } catch (error) {
@@ -55,6 +57,7 @@
       function predecir() {
         resultado.innerText = "Analizando imagen...";
         try {
+          // Redimensionar a 224x224 y normalizar (0 a 1)
           let tensor = tf.browser.fromPixels(vistaPrevia)
             .resizeBilinear([224, 224]) 
             .toFloat()
